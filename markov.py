@@ -16,9 +16,6 @@ class MCGBase:
 
 	Subclasses should implement _fit methods.'''
 
-	_NORMALISERS = {'simple': lambda x: x,
-					'softmax': np.exp}
-
 	def __init__(self, sep=None):
 		self.corpus = {}
 		self.probabilities = {}
@@ -73,6 +70,12 @@ class MCGBase:
  
 		return self._join(result)
 
+	def _make_normaliser(self, method='simple', temperature=1.0):
+		_NORMALISERS = {'simple': lambda x: x,
+						'softmax': lambda x: np.exp(x / temperature)}
+
+		return _NORMALISERS[method]
+
 	def fit_preprocessed(self, corpus, warm_start=False, auto_normalise=True):
 		if not warm_start:
 			self.corpus = {}
@@ -81,7 +84,7 @@ class MCGBase:
 			self._add(key, sub_key)
 
 		return self
-	
+
 	def fit(self, X, warm_start=True, auto_normalise=True):
 		if not warm_start:
 			self.corpus = {}
@@ -97,7 +100,7 @@ class MCGBase:
 			  temperature=1.0):
 
 		if isinstance(method, str):
-			normaliser = self._NORMALISERS[method]
+			normaliser = self._make_normaliser(method, temperature)
 
 		# Get the total number of times each key is a starting key.
 

@@ -57,6 +57,31 @@ class Test_MCGBase(unittest.TestCase):
 		self.assertTrue(all(1 - sum(key_pairs.values()) < 0.0001
 							for key_pairs in mcg.probabilities.values()))
 
+	def test_normalise_temperature(self):
+		mcg = self.make_mcg()
+		mcg.normalise(method='simple', temperature=2.0)
+		self.assertEqual(mcg.probabilities, {'key_one': {'value_one': 1 / 6,
+													    'value_two': 2 / 6,
+														'value_three': 3 / 6},
+											 'key_two': {'value_one': 3 / 8,
+											    	     'value_two': 5 / 8}})
+
+		self.assertTrue(all(1 - sum(key_pairs.values()) < 0.0001
+							for key_pairs in mcg.probabilities.values()))
+
+		mcg.normalise(method='softmax', temperature=2.0)
+
+		key_one_sum = sum(map(lambda x: exp(x / 2), mcg.corpus['key_one'].values()))
+		key_two_sum = sum(map(lambda x: exp(x / 2), mcg.corpus['key_two'].values()))
+		self.assertEqual(mcg.probabilities, {'key_one': {'value_one': exp(1 / 2) / key_one_sum,
+													    'value_two': exp(2 / 2) / key_one_sum,
+														'value_three': exp(3 / 2) / key_one_sum},
+											 'key_two': {'value_one': exp(3 / 2) / key_two_sum,
+											    	     'value_two': exp(5 / 2) / key_two_sum}})
+
+		self.assertTrue(all(1 - sum(key_pairs.values()) < 0.0001
+							for key_pairs in mcg.probabilities.values()))
+
 	def test_sample(self):
 		pass
 

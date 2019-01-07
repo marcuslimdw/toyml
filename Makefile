@@ -3,7 +3,8 @@ clean:
 	find -type d -name __pycache__ -delete
 
 test:
-	python3 ./test/test_markov.py
-	python3 ./test/test_utils.py
+	for filename in ./test/test_*.py; \
+	do python3 $$filename; \
+	done;
 
 .PHONY: test
