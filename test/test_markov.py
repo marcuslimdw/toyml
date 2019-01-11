@@ -1,10 +1,5 @@
 import unittest
 
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.sep, 'home', 'user', 'code'))
-
 from numpy import exp
 
 from toyml.markov import *
@@ -32,7 +27,7 @@ class Test_MCGBase(unittest.TestCase):
 		self.assertEqual(mcg.corpus, {'key': {'value_one': 2,
 											  'value_two': 1}})
 
-	def test_normalise(self):
+	def test_normalise_simple(self):
 		mcg = self.make_mcg()
 		mcg.normalise(method='simple')
 		self.assertEqual(mcg.probabilities, {'key_one': {'value_one': 1 / 6,
@@ -44,8 +39,9 @@ class Test_MCGBase(unittest.TestCase):
 		self.assertTrue(all(1 - sum(key_pairs.values()) < 0.0001
 							for key_pairs in mcg.probabilities.values()))
 
+	def test_normalise_softmax(self):
+		mcg = self.make_mcg()
 		mcg.normalise(method='softmax')
-
 		key_one_sum = sum(map(exp, mcg.corpus['key_one'].values()))
 		key_two_sum = sum(map(exp, mcg.corpus['key_two'].values()))
 		self.assertEqual(mcg.probabilities, {'key_one': {'value_one': exp(1) / key_one_sum,
@@ -57,7 +53,7 @@ class Test_MCGBase(unittest.TestCase):
 		self.assertTrue(all(1 - sum(key_pairs.values()) < 0.0001
 							for key_pairs in mcg.probabilities.values()))
 
-	def test_normalise_temperature(self):
+	def test_normalise_simple_temperature(self):
 		mcg = self.make_mcg()
 		mcg.normalise(method='simple', temperature=2.0)
 		self.assertEqual(mcg.probabilities, {'key_one': {'value_one': 1 / 6,
@@ -69,8 +65,9 @@ class Test_MCGBase(unittest.TestCase):
 		self.assertTrue(all(1 - sum(key_pairs.values()) < 0.0001
 							for key_pairs in mcg.probabilities.values()))
 
+	def test_normalise_softmax_temperature(self):
+		mcg = self.make_mcg()
 		mcg.normalise(method='softmax', temperature=2.0)
-
 		key_one_sum = sum(map(lambda x: exp(x / 2), mcg.corpus['key_one'].values()))
 		key_two_sum = sum(map(lambda x: exp(x / 2), mcg.corpus['key_two'].values()))
 		self.assertEqual(mcg.probabilities, {'key_one': {'value_one': exp(1 / 2) / key_one_sum,
@@ -157,8 +154,8 @@ class Test_WordMCG(unittest.TestCase):
 
 	def test_join(self):
 		mcg = WordMCG()
-		expected = 'O Romeo, Romeo! Wherefore art thou Romeo?'
-		result = mcg._join(['O', 'Romeo', ',', 'Romeo', '!', 'Wherefore', 'art', 'thou', 'Romeo', '?'])
+		expected = 'I don\'t have any apples, and you have two.'
+		result = mcg._join(['I', 'don', "'", 't', 'have', 'any', 'apples', ',', 'and', 'you', 'have', 'two', '.'])
 		self.assertEqual(expected, result)
 
 	def test_fit_separate_punctuation(self):

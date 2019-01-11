@@ -14,7 +14,7 @@ from functools import reduce
 class MCGBase:
 	'''Base class for Markov Chain Generators.
 
-	Subclasses should implement _fit methods.'''
+	Subclasses should implement the _fit method.'''
 
 	def __init__(self, sep=None):
 		self.corpus = {}
@@ -23,8 +23,7 @@ class MCGBase:
 
 	def _add(self, key, sub_key):
 
-		# A functional solution is actually possible here, but I
-		# think it would be inefficient (and not as clean).
+		# A functional solution is actually possible here, but I think it would be inefficient (and not as clean).
 
 		try:
 			self.corpus[key][sub_key] += 1
@@ -107,8 +106,7 @@ class MCGBase:
 		key_sums = {key: sum(map(normaliser, key_pairs.values()))
 					for key, key_pairs in self.corpus.items()}
 
-		# Calculate the probability of each sub-key appearing after 
-		# each starting key, based on a specified method.
+		# Calculate the probability of each sub-key appearing after each starting key, based on a specified method.
 
 		self.probabilities = {key: {sub_key: normaliser(count) / key_sums[key] 
 									for sub_key, count in key_pairs.items()} 
@@ -141,7 +139,7 @@ class MCGBase:
 
 
 class RegexMCG(MCGBase):
-	'''Simple Markov Chain Generator '''
+	'''Simple Markov Chain generator implementing _fit with regex logic. Finds all non-overlapping instances of a given regex.'''
 	def __init__(self, regex, sep):
 		super().__init__(sep)
 		self.regex = re.compile(regex)
@@ -163,7 +161,7 @@ class WordMCG(RegexMCG):
 	def _join(self, strings):
 		if self.separate_punctuation:
 			def custom_joiner(first, second):
-				if second in string.punctuation:
+				if second in string.punctuation or first[-1] == "\'":
 					return ''.join((first, second))
 
 				else:

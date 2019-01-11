@@ -1,3 +1,5 @@
+from toyml.utils import check_array_like
+
 class Estimator:
 	'''Base class for estimators.'''
 
@@ -5,8 +7,7 @@ class Estimator:
 		return True
 	
 	def fit(self, X, y):
-		check_array_like(X, y)
-		self._check_fit()
+		X, y = check_array_like(X, y)
 		self._fit(X, y)
 
 	def predict(self, X):
