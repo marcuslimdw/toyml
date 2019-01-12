@@ -25,8 +25,8 @@ class TestTree(unittest.TestCase):
 		data_x = np.array([1, 1, 2, 2, 2])
 		data_y = np.array([0, 0, 1, 1, 1])
 		expected = ((1, 0.0),)
-		self.assertEqual(tuple(_splits(data_x, data_y)),
-						 expected)
+		self.assertTrue(np.isclose(list(_splits(data_x, data_y)),
+								   expected).all())
 
 	def test_splits_2(self):
 		data_x = np.array([1, 2, 3, 4, 5])

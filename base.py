@@ -8,6 +8,7 @@ class Estimator:
 	
 	def fit(self, X, y):
 		X, y = check_array_like(X, y)
+		
 		self._fit(X, y)
 
 	def predict(self, X):
