@@ -1,3 +1,5 @@
+import numpy as np
+
 from toyml.utils import check_array_like
 
 class Estimator:
