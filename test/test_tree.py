@@ -2,19 +2,31 @@ import unittest
 
 import numpy as np
 
-from toyml.tree import _gini, _splits
+from toyml.tree import DecisionTreeClassifier
 
 class TestDecisionTreeClassifier(unittest.TestCase):
 
 	tree = DecisionTreeClassifier(max_depth=10)
 
+	def test_and(self):
+		X = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
+		y = np.array([0, 0, 0, 1])
+		self.tree.fit(X, y)
+		self.assertTrue((self.tree.predict(X) == y).all())
+
+	def test_or(self):
+		X = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
+		y = np.array([0, 1, 1, 1])
+		self.tree.fit(X, y)
+		self.assertTrue((self.tree.predict(X) == y).all())
+
 	def test_xor(self):
 		X = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
 		y = np.array([0, 1, 1, 0])
-		self.tree._fit(X, y)
-		self.assertEqual(self.tree.predict(X), y)
+		self.tree.fit(X, y)
+		self.assertTrue((self.tree.predict(X) == y).all())
 
-class TestTree(unittest.TestCase):
+# class TestTree(unittest.TestCase):
 
 	# def test_gini_1(self):
 	# 	data = [1, 1, 1, 1, 1]

@@ -15,7 +15,7 @@ class Estimator:
 
 	def predict(self, X):
 		self._check_fit()
-		self._predict(X)
+		return self._predict(X)
 
 	def score(self, X, y):
 		self._check_fit()
