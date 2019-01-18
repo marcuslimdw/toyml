@@ -40,7 +40,7 @@ def _gini(y):
 
 	p = np.unique(y, return_counts=True)[1] / y.size
 	return 1 - sum(p * (1 - p))
-	
+
 
 class Node:
 
@@ -177,7 +177,7 @@ class Node:
 		----------
 
 		best_split: dict
-			The dictionary containing the parameters for the best possible split.
+			The dictionary containing the parameters for the best possible split. See `_splits`.
 		'''
 
 		def is_binary(split):
@@ -313,6 +313,7 @@ class DecisionTreeClassifier(Classifier):
 	def _fit(self, X, y):
 		self.labels = np.unique(y)
 		self.base = Node(self, X, y, 0)
+		return self
 
 	def _predict_proba(self, X):
 		return self.base.predict_proba(X)

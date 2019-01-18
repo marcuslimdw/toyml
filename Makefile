@@ -4,7 +4,7 @@ clean:
 
 test:
 	for filename in ./test/test_*.py; \
-	do python3 $$filename; \
+	do pytest $$filename; \
 	done;
 
 .PHONY: test
