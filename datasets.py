@@ -7,7 +7,6 @@ from operator import itemgetter
 from toyml.utils import check_shape, normalise
 from toyml.evaluation import Splitter
 
-# TO-DO: think about how to handle allowed dtypes - should there be automatic upcasting?
 
 Feature = namedtuple('Feature', ('dtype', 'dist'))
 

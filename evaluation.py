@@ -79,7 +79,7 @@ def recall(y_true, y_pred, which=1):
 	----------
 
 	recall: float
-		The recall of the prediction in `y_pred` for the class `which`.
+		The recall of the prediction in `y_probared` for the class `which`.
 
 	'''
 	true_positives = ((y_true == which) & (y_pred == which)).sum()
@@ -151,8 +151,13 @@ def roc_curve(y_true, y_proba):
 		threshold: float
 			The probability threshold at which either the false positive or true positive rate changed.
 		'''
+
+		present = np.unique(y_true)
+		if len(present) == 1:
+			raise ValueError('The ROC curve is undefined when samples of only one class ({}) are available.'.format(present[0]))
+
 		y_pairs = np.stack((y_true, y_proba), axis=1)
-		uniques = np.unique(y_pairs, axis=0)[:, 1]
+		uniques = np.unique(y_pairs.round(3), axis=0)[:, 1]
 		sorted_indices = np.argsort(uniques)
 		sorted_uniques = uniques[sorted_indices]
 

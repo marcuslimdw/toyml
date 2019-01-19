@@ -3,7 +3,7 @@ clean:
 	find -type d -name __pycache__ -delete
 
 test:
-	for filename in ./test/test_*.py; \
+	for filename in ./test/test	_*.py; \
 	do pytest $$filename; \
 	done;
 
