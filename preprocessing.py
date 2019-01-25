@@ -1,2 +1,2 @@
 class OneHotEncoder:
-	pass
+    pass

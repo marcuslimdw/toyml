@@ -1,6 +1,6 @@
-from warnings import warn
-
 import numpy as np
+
+from operator import itemgetter
 
 import re
 import string
@@ -11,182 +11,175 @@ import os.path
 
 from functools import reduce
 
+from toyml.utils import softmax
+
+
 class MCGBase:
-	'''Base class for Markov Chain Generators.
+    '''Base class for Markov Chain Generators.
 
-	Subclasses should implement the _fit method.'''
+    Subclasses should implement the _fit method.'''
 
-	def __init__(self, sep=None):
-		self.corpus = {}
-		self.probabilities = {}
-		self.sep = sep
+    def __init__(self, sep=None):
+        self.corpus = {}
+        self.base_probabilities = {}
+        self.sep = sep
 
-	def _add(self, key, sub_key):
+    def fit(self, X, warm_start=True):
+        if not warm_start:
+            self.corpus = {}
 
-		# A functional solution is actually possible here, but I think it would be inefficient (and not as clean).
+        self._fit(X)
+        self.normalise()
 
-		try:
-			self.corpus[key][sub_key] += 1
+        return self
 
-		except KeyError:
+    def fit_preprocessed(self, corpus, warm_start=False):
+        if not warm_start:
+            self.corpus = {}
 
-			# The sub-key does not exist for this key yet.
+        for key, sub_key in corpus.items():
+            self._add(key, sub_key)
 
-			try:
-				self.corpus[key][sub_key] = 1
+        self.normalise()
+        return self
 
-			except KeyError:
+    def normalise(self):
+        '''Convert sub-key counts to probabilities.'''
 
-				# The key doesn't exist either.
+        key_sums = {key: sum(key_pairs.values()) for key, key_pairs in self.corpus.items()}
+        self.base_probabilities = {key: {sub_key: count / key_sums[key] for sub_key, count in key_pairs.items()}
+                                   for key, key_pairs in self.corpus.items()}
 
-				self.corpus[key] = {sub_key: 1}
+        return self
 
-	def _sample(self, key):
-		if not self.probabilities:
-			warn('Probabilities dictionary is empty. Calling fit with default arguments.', RuntimeWarning)
-			self.normalise()
+    def generate(self, seed, length, temperature=1.0):
+        return self._generate(seed, length, temperature)
 
-		# Transpose the sub_key probabilities dictionary into two tuples.
+    def save(self, path, mode='error'):
+        if mode not in ('error', 'overwrite'):
+            raise RuntimeError("Mode accepts 'error' or 'overwrite'; {} was passed".format(mode))
 
-		sub_keys, probabilities = zip(*self.probabilities[key].items())
+        if mode == 'error' and os.path.isfile(path):
+            raise RuntimeError("The file {} already exists. Set mode to 'overwrite' if you wish to overwrite it.")
 
-		return np.random.choice(sub_keys, p=probabilities)
+        else:
+            save_data = json.dumps([self.corpus, self.base_probabilities, self.sep])
+            with open(path, 'w') as f:
+                f.write(save_data)
 
-	def _join(self, strings):
-		return self.sep.join(strings)
+        return self
 
-	def _generate(self, seed, length):
+    def load(self, path):
+        with open(path, 'r') as f:
+            load_data = json.loads(f.read())
 
-		# Is it possible to write this in a functional style?
+        self.corpus, self.base_probabilities, self.sep = load_data
+        return self
 
-		result = [seed]
-		for i in range(length):
-			try:
-				result.append(self._sample(result[-1]))
+    def _add(self, key, sub_key):
 
-			except KeyError:
-				break
- 
-		return self._join(result)
+        # A functional solution is actually possible here, but I think it would be inefficient (and not as clean).
 
-	def _make_normaliser(self, method='simple', temperature=1.0):
-		_NORMALISERS = {'simple': lambda x: x,
-						'softmax': lambda x: np.exp(x / temperature)}
+        try:
+            self.corpus[key][sub_key] += 1
 
-		return _NORMALISERS[method]
+        except KeyError:
 
-	def fit_preprocessed(self, corpus, warm_start=False, auto_normalise=True):
-		if not warm_start:
-			self.corpus = {}
+            # The sub-key does not exist for this key yet.
 
-		for key, sub_key in corpus.items():
-			self._add(key, sub_key)
+            try:
+                self.corpus[key][sub_key] = 1
 
-		return self
+            except KeyError:
 
-	def fit(self, X, warm_start=True, auto_normalise=True):
-		if not warm_start:
-			self.corpus = {}
+                # The key doesn't exist either.
 
-		self._fit(X)
-		if auto_normalise:
-			self.normalise()
+                self.corpus[key] = {sub_key: 1}
 
-		return self
+    def _sample(self, key, temperature=1.0):
+        # Transpose the sub_key probabilities dictionary into two tuples.
 
-	def normalise(self, 
-			  method='simple', 
-			  temperature=1.0):
+        if temperature == 0:
+            return max(self.base_probabilities[key].items(), key=itemgetter(1))[0]
 
-		if isinstance(method, str):
-			normaliser = self._make_normaliser(method, temperature)
+        sub_keys, probabilities = zip(*self.base_probabilities[key].items())
 
-		# Get the total number of times each key is a starting key.
+        if temperature > 0:
+            return np.random.choice(sub_keys, p=softmax(np.array(probabilities) / temperature))
 
-		key_sums = {key: sum(map(normaliser, key_pairs.values()))
-					for key, key_pairs in self.corpus.items()}
+        else:
+            return np.random.choice(sub_keys, p=softmax(np.array(probabilities) * temperature))
 
-		# Calculate the probability of each sub-key appearing after each starting key, based on a specified method.
+    def _join(self, strings):
+        return self.sep.join(strings)
 
-		self.probabilities = {key: {sub_key: normaliser(count) / key_sums[key] 
-									for sub_key, count in key_pairs.items()} 
-							  for key, key_pairs in self.corpus.items()}
+    def _generate(self, seed, length, temperature=1.0):
 
-		return self
+        # Is it possible to write this in a functional style?
 
-	def generate(self, seed, length):
-		return self._generate(seed, length)
+        result = [seed]
+        for i in range(length):
+            try:
+                result.append(self._sample(result[-1], temperature))
 
-	def save(self, path, mode='error'):
-		if mode not in ('error', 'overwrite'):
-			raise RuntimeError("Mode accepts 'error' or 'overwrite'; {} was passed".format(mode))
+            except KeyError:
+                break
 
-		if mode == 'error' and os.path.isfile(path):
-			raise RuntimeError("The file {} already exists. Set mode to 'overwrite' if you wish to overwrite it.")
-
-		else:
-			save_data = json.dumps([self.corpus, self.probabilities, self.sep])
-			with open(path, 'w') as f:
-				f.write(save_data)
-
-		return self
-
-	def load(self, path):
-		with open(path, 'r') as f:
-			load_data = json.loads(f.read())
-		self.corpus, self.probabilities, self.sep = load_data
-		return self
+        return self._join(result)
 
 
 class RegexMCG(MCGBase):
-	'''Simple Markov Chain generator implementing _fit with regex logic. Finds all non-overlapping instances of a given regex.'''
-	def __init__(self, regex, sep):
-		super().__init__(sep)
-		self.regex = re.compile(regex)
+    '''Simple Markov Chain generator implementing _fit with regex logic. Finds all non-overlapping instances of a given
+    regex.'''
+    def __init__(self, regex, sep):
+        super().__init__(sep)
+        self.regex = re.compile(regex)
 
-	def _fit(self, X):
-		for document in X:
-			doc_words = re.findall(self.regex, document)
-			for first, second in zip(doc_words, doc_words[1:]):
-				self._add(first, second)
+    def _fit(self, X):
+        for document in X:
+            doc_words = re.findall(self.regex, document)
+            for first, second in zip(doc_words, doc_words[1:]):
+                self._add(first, second)
 
-		return self
+        return self
 
 
 class WordMCG(RegexMCG):
 
-	_SEPARATE_PUNCTUATION = {True:  '\w+|[{}]'.format(string.punctuation),
-							 False: '\w+[{}]?'.format(string.punctuation)}
+    _SEPARATE_PUNCTUATION = {True:  r'\w+|[{}]'.format(string.punctuation),
+                             False: r'\w+[{}]?'.format(string.punctuation)}
 
-	def _join(self, strings):
-		if self.separate_punctuation:
-			def custom_joiner(first, second):
-				if second in string.punctuation or first[-1] == "\'":
-					return ''.join((first, second))
+    def _join(self, strings):
+        if self.separate_punctuation:
+            def custom_joiner(first, second):
+                if second in string.punctuation or first[-1] == "\'":
+                    return ''.join((first, second))
 
-				else:
-					return ' '.join((first, second))
+                else:
+                    return ' '.join((first, second))
 
-			return reduce(custom_joiner, strings)
+            return reduce(custom_joiner, strings)
 
-		else:
-			return super()._join(strings)
+        else:
+            return super()._join(strings)
 
-	def __init__(self, separate_punctuation=True):
-		self.separate_punctuation = separate_punctuation
-		regex = self._SEPARATE_PUNCTUATION[separate_punctuation]
-		super().__init__(regex=regex, sep=' ')
+    def __init__(self, separate_punctuation=True):
+        self.separate_punctuation = separate_punctuation
+        regex = self._SEPARATE_PUNCTUATION[separate_punctuation]
+        super().__init__(regex=regex, sep=' ')
 
 
 class CharMCG(RegexMCG):
-	def __init__(self):
-		super().__init__(regex='.', sep = '')
+
+    def __init__(self):
+        super().__init__(regex='.', sep='')
+
 
 test_corpus = ['I have an apple',
-			   'and you have two',
-			   'you give me one apple',
-			   'and I have two',
-			   'I throw away one apple',
-			   'and give one back to you',
-			   'I don\'t have any apples',
-			   'and you have two']
+               'and you have two',
+               'you give me one apple',
+               'and I have two',
+               'I throw away one apple',
+               'and give one back to you',
+               'I don\'t have any apples',
+               'and you have two']
