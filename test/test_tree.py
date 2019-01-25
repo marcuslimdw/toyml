@@ -7,7 +7,7 @@ import numpy as np
 
 @pytest.fixture
 def dataset():
-    return datasets.simple(20000, 20, 0)
+    return datasets.simple(10000, 10, 0)
 
 
 @pytest.mark.parametrize('binning', ['mean', 'ktiles'])
@@ -21,11 +21,8 @@ def test_logic_gates(output, binning):
     assert (model.predict(data) == output).all()
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize('model', [tree.DecisionTreeClassifier(max_depth=0),
-                                   tree.DecisionTreeClassifier(max_depth=3),
-                                   tree.DecisionTreeClassifier(max_depth=20),
-                                   tree.DecisionTreeClassifier(max_depth=None)])
+                                   tree.DecisionTreeClassifier(max_depth=5)])
 def test_max_depth(model, dataset):
     model.fit(*dataset)
     if model.max_depth is not None:

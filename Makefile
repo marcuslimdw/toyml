@@ -9,15 +9,15 @@ format:
 flake8:
 	find ./ -name "*.py" -exec flake8 {} +
 
-test: flake8 test-force benchmark
+test: flake8 test-force
 
-test-fast: flake8 test-fast-force
+test-slow: flake8 test-slow-force benchmark
 
-test-fast-force:
-	find ./test -name "*.py" -exec pytest {} -m "not slow" \;
+test-slow-force:
+	find ./test -name "*.py" -exec pytest {} \;
 
 test-force:
-	find ./test/ -name "*.py" -exec pytest {} \;
+	find ./test/ -name "*.py" -exec pytest {} -m "not slow" \;
 
 benchmark:
 	python3 ./benchmark/benchmark.py

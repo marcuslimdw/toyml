@@ -7,8 +7,6 @@ from sklearn.tree import DecisionTreeClassifier as SDTC
 
 from datasets import simple
 
-time_now = 0.0
-
 
 @contextmanager
 def timer(current):
@@ -17,10 +15,10 @@ def timer(current):
     print('{} took {:.2f} seconds.'.format(current, clock() - time_now))
 
 
-X_train, y_train = simple(2000, 6, 0)
-X_test, y_test = simple(1000, 6, 0)
+X_train, y_train = simple(20000, 20, 0)
+X_test, y_test = simple(10000, 20, 0)
 
-toymldtc = TDTC(max_depth=5)
+toymldtc = TDTC(max_depth=10)
 skldtc = SDTC()
 
 with timer('toyml DecisionTreeClassifier.fit'):

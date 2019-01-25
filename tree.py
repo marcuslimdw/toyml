@@ -59,14 +59,14 @@ class Node:
         self._depth = depth
 
         if len(X) < self._head.min_samples_split or self._too_deep():
+            self._quality = None
+            self._split = None
             pre_split_terminate = True
 
         else:
-            pre_split_terminate = False
             self._quality = self._head._quality_func(y)
             self._split = self._get_best_split(X, y)
-
-        # Is there a better way to do this?
+            pre_split_terminate = False
 
         if pre_split_terminate or self._split_terminate():
             label_counts = dict(zip(*np.unique(y, return_counts=True)))
