@@ -1,13 +1,8 @@
-from toyml import tree, datasets
-
 import pytest
 
+from toyml.tree import DecisionTreeClassifier
+
 import numpy as np
-
-
-@pytest.fixture
-def dataset():
-    return datasets.simple(10000, 10, 0)
 
 
 @pytest.mark.parametrize('binning', ['mean', 'ktiles'])
@@ -15,15 +10,16 @@ def dataset():
                                     np.array([0, 1, 1, 1]),
                                     np.array([0, 1, 1, 0])])
 def test_logic_gates(output, binning):
-    model = tree.DecisionTreeClassifier(binning=binning)
+    model = DecisionTreeClassifier(binning=binning)
     data = np.array([[0, 0], [1, 0], [0, 1], [1, 1]])
     model.fit(data, output)
     assert (model.predict(data) == output).all()
 
 
-@pytest.mark.parametrize('model', [tree.DecisionTreeClassifier(max_depth=0),
-                                   tree.DecisionTreeClassifier(max_depth=5)])
-def test_max_depth(model, dataset):
-    model.fit(*dataset)
-    if model.max_depth is not None:
-        assert model.max_depth >= model.get_depth()
+@pytest.mark.parametrize('max_depth', [1, 5, 10])
+def test_max_depth(max_depth):
+    X = np.reshape(np.arange(max_depth), (max_depth, 1))
+    y = np.array([i % 2 for i in range(max_depth)])
+    model = DecisionTreeClassifier(max_depth=max_depth)
+    model.fit(X, y)
+    assert max_depth >= model.get_depth()

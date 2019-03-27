@@ -1,8 +1,7 @@
 import numpy as np
 
-from toyml.utils import check_shape
-
-from toyml.evaluation import accuracy, mean_squared_error
+from toyml.utils import to_checked_X_y, to_checked_array
+from toyml.metrics import accuracy, r_squared
 
 
 class Estimator:
@@ -12,13 +11,13 @@ class Estimator:
         return True
 
     def fit(self, X, y):
-        check_shape(X, 2)
-        check_shape(y, 1)
-        self._fit(X, y)
+        X_array, y_array = to_checked_X_y(X, y)
+        self._fit(X_array, y_array)
 
     def predict(self, X):
         self._check_fit()
-        return self._predict(X)
+        X_array = to_checked_array(X, 2)
+        return self._predict(X_array)
 
 
 class Classifier(Estimator):
@@ -28,16 +27,18 @@ class Classifier(Estimator):
         return self
 
     def _predict_proba(self, X):
-        return self
+        raise NotImplementedError
 
-    def _predict(self, X):
+    def predict(self, X):
         return self.labels[np.argmax(self._predict_proba(X), axis=1)]
 
-    def score(self, X, y, metric=accuracy):
-        return accuracy(y, self.predict(X))
-
     def predict_proba(self, X):
-        return self._predict_proba(X)
+        X_array = to_checked_array(X, 2)
+        return self._predict_proba(X_array)
+
+    def score(self, X, y_true, metric=accuracy):
+        X_array, y_array = to_checked_X_y(X, y_true)
+        return metric(self.predict(X_array), y_array)
 
 
 class Regressor(Estimator):
@@ -49,5 +50,6 @@ class Regressor(Estimator):
     def _predict(self, X):
         return self
 
-    def score(self, X, y, metric=mean_squared_error):
-        return accuracy(y, self.predict(X))
+    def score(self, X, y_true, metric=r_squared):
+        X_array, y_array = to_checked_X_y(X, y_true)
+        return metric(self.predict(X_array), y_array)

@@ -14,10 +14,10 @@ test: flake8 test-force
 test-slow: flake8 test-slow-force benchmark
 
 test-slow-force:
-	find ./test -name "*.py" -exec pytest {} \;
+	find ./test -name "*.py" -exec pytest {} -v \;
 
 test-force:
-	find ./test/ -name "*.py" -exec pytest {} -m "not slow" \;
+	find ./test/ -name "*.py" -exec pytest {} -m "not slow" -v \;
 
 benchmark:
 	python3 ./benchmark/benchmark.py

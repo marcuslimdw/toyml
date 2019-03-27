@@ -1,17 +1,15 @@
 import numpy as np
 
-from operator import itemgetter
-
 import re
 import string
 
 import json
-
 import os.path
 
 from functools import reduce
+from operator import itemgetter
 
-from toyml.utils import softmax
+from .utils import softmax
 
 
 class MCGBase:
@@ -30,7 +28,6 @@ class MCGBase:
 
         self._fit(X)
         self.normalise()
-
         return self
 
     def fit_preprocessed(self, corpus, warm_start=False):
@@ -173,13 +170,3 @@ class CharMCG(RegexMCG):
 
     def __init__(self):
         super().__init__(regex='.', sep='')
-
-
-test_corpus = ['I have an apple',
-               'and you have two',
-               'you give me one apple',
-               'and I have two',
-               'I throw away one apple',
-               'and give one back to you',
-               'I don\'t have any apples',
-               'and you have two']

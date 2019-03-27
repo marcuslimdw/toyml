@@ -1,57 +1,17 @@
 import numpy as np
 
-from toyml.base import Classifier
+from .base import Classifier
+from .utils import flatten
+from .metrics import gini_impurity
 
-from functional import flatten
+from operator import attrgetter
 
 from collections import namedtuple
 
 
-def _gini(y):
-    '''
-    Calculate the score of a dataset of labels based on Gini impurity.
-
-    Randomly choose one element from the dataset and assign to it a random label, based on the distribution of labels in
-    the dataset. The probability that this random label is wrong is the Gini impurity. To give a metric that increases
-    with quality, the score returned is 1 - Gini impurity.
-
-    Parameters
-    ----------
-
-    y: 1D array
-        The dataset to calculate the Gini impurity of.
-
-    Returns
-    ----------
-
-    score: float
-        The calculated Gini impurity-based score of `y`.
-
-    Examples
-    ----------
-
-    Given `y = [1, 1, 1, 1, 1]`, a randomly chosen element can only be 1. Randomly choosing a label from the dataset's
-    distribution of labels can also only give 1. The probability that the two do not match, and therefore the Gini
-    impurity, is 0, giving a score of 1.0 - 0.0 = 1.0.
-
-    Given `y = [1, 1, 2, 2, 3]`, the probabilities of choosing each unique label are as follows:
-
-    1: 0.4
-    2: 0.4
-    3: 0.2
-
-    In the case of a randomly chosen label of 1, there is a 1.0 - 0.6 = 0.4 probability that the correct label is 2 or
-    3, for a total probability of 0.6 * 0.4 = 0.24 of making a mistake. This similarly applies for class 2. For class 3,
-    the probability of a mistake is 0.2 * 0.8 = 0.16. Summing all of these probabilities up, the Gini impurity of the
-    dataset is 0.64, and therefore the score is 1.0 - 0.64 = 0.36.
-    '''
-
-    p = np.unique(y, return_counts=True)[1] / y.size
-    return 1 - sum(p * (1 - p))
-
-
 class Node:
 
+    __slots__ = ['_head', '_depth', '_quality', '_split', '_probabilities', '_leaf', '_left', '_right']
     Split = namedtuple('Split', ('feature_index', 'on', 'weighted_quality', 'n_samples'))
 
     def __init__(self, head, X, y, depth):
@@ -74,12 +34,13 @@ class Node:
                                             if label in label_counts
                                             else 0
                                             for label in self._head.labels])
-            self._leaf = True
+            self._left = None
+            self._right = None
 
         else:
+            self._probabilities = None
             self._left = Node(self._head, *self._split_left(X, y), depth=self._depth + 1)
             self._right = Node(self._head, *self._split_right(X, y), depth=self._depth + 1)
-            self._leaf = False
 
     def predict_proba(self, X):
         '''
@@ -231,11 +192,12 @@ class Node:
         def is_binary(split):
             return min(split.n_samples) > 0
 
-        candidates = (filter(is_binary, self._splits(X[:, j], y, j)) for j in range(X.shape[1]))
-        try:
-            best_split = max(flatten(candidates), key=lambda split: split.weighted_quality)
+        binary_splits = (filter(is_binary, self._splits(X[:, j], y, j)) for j in range(X.shape[1]))
+        candidates = tuple(flatten(binary_splits))
+        if len(candidates) > 0:
+            best_split = max(candidates, key=attrgetter('weighted_quality'))
 
-        except ValueError:
+        else:
             best_split = None
 
         return best_split
@@ -263,7 +225,7 @@ class Node:
             The labels corresponding to the observations in `X_split`.
         '''
 
-        index = X[:, self._split.feature_index] <= self._split.on
+        index = X[:, self._split.feature_index] < self._split.on
         return (X[index], y[index])
 
     def _split_right(self, X, y):
@@ -289,7 +251,7 @@ class Node:
             The labels corresponding to the observations in `X_split`.
         '''
 
-        index = X[:, self._split.feature_index] > self._split.on
+        index = X[:, self._split.feature_index] >= self._split.on
         return (X[index], y[index])
 
     def _get_probabilities(self, x):
@@ -310,15 +272,15 @@ class Node:
             The probabilities that the observation contained in `x` has of belonging to each label.
         '''
 
-        if self._leaf:
-            return self._probabilities
-
-        else:
-            if x[self._split.feature_index] <= self._split.on:
+        if self._probabilities is None:
+            if x[self._split.feature_index] < self._split.on:
                 return self._left._get_probabilities(x)
 
             else:
                 return self._right._get_probabilities(x)
+
+        else:
+            return self._probabilities
 
 
 class DecisionTreeClassifier(Classifier):
@@ -336,10 +298,11 @@ class DecisionTreeClassifier(Classifier):
         The maximum depth to which to grow the tree.
     '''
 
-    _BINNING = ('mean', 'ktiles')
+    __slots__ = ['_quality_func', 'binning', 'k', 'max_depth', 'min_samples_split', 'labels', 'base']
+    _BINNING = ['mean', 'ktiles']
 
     def __init__(self,
-                 quality_func=_gini,
+                 quality_func=gini_impurity,
                  binning='ktiles',
                  k=5,
                  max_depth=5,
@@ -360,10 +323,10 @@ class DecisionTreeClassifier(Classifier):
 
     def get_depth(self):
         def traverse(node, current):
-            if node._leaf:
-                return current
+            if node._probabilities is None:
+                return max(traverse(node._left, current + 1), traverse(node._right, current + 1))
 
             else:
-                return max(traverse(node._left, current + 1), traverse(node._right, current + 1))
+                return current
 
         return traverse(self.base, 0)
