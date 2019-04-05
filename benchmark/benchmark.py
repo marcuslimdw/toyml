@@ -11,7 +11,14 @@ from toyml.tree import DecisionTreeClassifier as TDTC
 from sklearn.tree import DecisionTreeClassifier as SDTC
 
 from toyml.evaluation import train_test_split
-from toyml.datasets import simple
+
+
+def simple(n_points, n_features, seed, noise_scale=0.2, threshold=0.5):
+    np.random.seed(seed)
+    X = np.random.rand(n_points, n_features)
+    X_error = np.random.rand(n_points, n_features) * noise_scale
+    y = ((X + X_error).sum(axis=1) >= threshold * (n_features)).astype(np.int8)
+    return (X, y)
 
 
 @contextmanager
@@ -24,7 +31,7 @@ def timer(current):
 tlinr = TLR(epochs=1000)
 slinr = SLR()
 
-tdtc = TDTC(max_depth=10)
+tdtc = TDTC(max_depth=8)
 sdtc = SDTC()
 
 X = np.random.rand(10000, 10)

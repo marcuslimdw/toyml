@@ -14,9 +14,6 @@ class LinearRegression(Regressor):
         self.learning_rate = learning_rate
         self.method = method
 
-    def _loss(self, X, y):
-        return (self.predict(X) - y) ** 2
-
     def _fit(self, X, y):
         if self.fit_intercept:
             X_padded = np.concatenate([X, np.ones((len(X), 1))], axis=1)

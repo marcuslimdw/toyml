@@ -9,9 +9,9 @@ class Splitter:
     def __init__(self, *splits):
         self.splits = np.cumsum(normalise(splits))
 
-    def split(self, X, y):
+    def split(self, X, y, **kwargs):
         X_array, y_array = to_checked_X_y(X, y)
-        return self._split(X_array, y_array)
+        return self._split(X_array, y_array, **kwargs)
 
 
 class SimpleSplitter(Splitter):
@@ -23,18 +23,18 @@ class SimpleSplitter(Splitter):
 class RandomSplitter(Splitter):
 
     def _split(self, X, y, shuffle=True, random_state=None):
-        length = X_array.shape[0]
+        length = X.shape[0]
         np.random.seed(random_state)
 
         if shuffle:
             indices = np.random.permutation(length)
-            yield from self._split(X_array[indices], y_array[indices], shuffle=False)
+            yield from self._split(X[indices], y[indices], shuffle=False)
 
         else:
             indices = np.arange(length)
             limits = (np.concatenate(([0], self.splits)) * length).astype(int)
             for start, end in zip(limits, limits[1:]):
-                yield (X_array[indices[start:end]], y_array[indices[start:end]])
+                yield (X[indices[start:end]], y[indices[start:end]])
 
 
 def train_test_split(X, y, train_split=0.7, test_split=0.3, random_state=None):

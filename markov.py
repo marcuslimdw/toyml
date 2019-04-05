@@ -1,7 +1,7 @@
 import numpy as np
 
 import re
-import string
+from string import punctuation
 
 import json
 import os.path
@@ -143,13 +143,13 @@ class RegexMCG(MCGBase):
 
 class WordMCG(RegexMCG):
 
-    _SEPARATE_PUNCTUATION = {True:  r'\w+|[{}]'.format(string.punctuation),
-                             False: r'\w+[{}]?'.format(string.punctuation)}
+    _SEPARATE_PUNCTUATION = {True:  r'\w+|[{}]'.format(punctuation),
+                             False: r'\w+[{}]?'.format(punctuation)}
 
     def _join(self, strings):
         if self.separate_punctuation:
             def custom_joiner(first, second):
-                if second in string.punctuation or first[-1] == "\'":
+                if second in punctuation or first[-1] == "\'":
                     return ''.join((first, second))
 
                 else:
